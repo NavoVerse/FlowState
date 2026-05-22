@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import '../models/mood_log.dart';
+import '../models/user_profile.dart';
 
 class DatabaseService extends ChangeNotifier {
   final FirebaseFirestore? _db;
@@ -9,6 +10,7 @@ class DatabaseService extends ChangeNotifier {
 
   // Local fallback memory cache for immediate testing without Firebase setup
   final List<MoodLog> _mockMoodLogs = [];
+  final Map<String, UserProfile> _mockUserProfiles = {};
 
   // Stream controller for local changes
   final StreamController<List<MoodLog>> _localLogsController = StreamController<List<MoodLog>>.broadcast();
@@ -134,6 +136,43 @@ class DatabaseService extends ChangeNotifier {
       debugPrint("Error deleting mood log: $e");
       rethrow;
     }
+  }
+
+  // Save User Profile to Database
+  Future<void> saveUserProfile(UserProfile profile) async {
+    try {
+      if (_isFirebaseAvailable) {
+        await _db!.collection('users').doc(profile.uid).set(profile.toMap(), SetOptions(merge: true));
+      } else {
+        // Mock save
+        await Future.delayed(const Duration(milliseconds: 200));
+        _mockUserProfiles[profile.uid] = profile;
+        debugPrint("Successfully saved mock user profile for: ${profile.email}");
+      }
+    } catch (e) {
+      debugPrint("Error saving user profile: $e");
+      rethrow;
+    }
+  }
+
+  // Retrieve User Profile from Database
+  Future<UserProfile?> getUserProfile(String uid) async {
+    try {
+      if (_isFirebaseAvailable) {
+        final doc = await _db!.collection('users').doc(uid).get();
+        if (doc.exists && doc.data() != null) {
+          return UserProfile.fromMap(doc.data()!, doc.id);
+        }
+      } else {
+        // Mock get
+        await Future.delayed(const Duration(milliseconds: 150));
+        return _mockUserProfiles[uid];
+      }
+    } catch (e) {
+      debugPrint("Error getting user profile: $e");
+      rethrow;
+    }
+    return null;
   }
 
   // Static Calm Daily Quotes / Affirmations

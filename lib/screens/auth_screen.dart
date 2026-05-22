@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../services/auth_service.dart';
+import '../services/db_service.dart';
+import '../models/user_profile.dart';
 
 class AuthScreen extends StatefulWidget {
   const AuthScreen({super.key});
@@ -36,16 +38,34 @@ class _AuthScreenState extends State<AuthScreen> {
 
     final authService = Provider.of<AuthService>(context, listen: false);
     try {
+      FlowUser? user;
       if (_isSignUp) {
-        await authService.registerWithEmailAndPassword(
+        user = await authService.registerWithEmailAndPassword(
           _emailController.text,
           _passwordController.text,
         );
       } else {
-        await authService.signInWithEmailAndPassword(
+        user = await authService.signInWithEmailAndPassword(
           _emailController.text,
           _passwordController.text,
         );
+      }
+
+      if (user != null && mounted) {
+        final dbService = Provider.of<DatabaseService>(context, listen: false);
+        final emailPart = user.email.contains('@') ? user.email.split('@').first : 'User';
+        final displayName = emailPart.isNotEmpty 
+            ? emailPart[0].toUpperCase() + emailPart.substring(1) 
+            : 'User';
+        
+        await dbService.saveUserProfile(UserProfile(
+          uid: user.uid,
+          email: user.email,
+          displayName: displayName,
+          createdAt: DateTime.now(),
+          lastLoginAt: DateTime.now(),
+          isAnonymous: user.isAnonymous,
+        ));
       }
     } catch (e) {
       setState(() {
@@ -68,7 +88,18 @@ class _AuthScreenState extends State<AuthScreen> {
 
     final authService = Provider.of<AuthService>(context, listen: false);
     try {
-      await authService.signInAnonymously();
+      final user = await authService.signInAnonymously();
+      if (user != null && mounted) {
+        final dbService = Provider.of<DatabaseService>(context, listen: false);
+        await dbService.saveUserProfile(UserProfile(
+          uid: user.uid,
+          email: user.email,
+          displayName: "Guest User",
+          createdAt: DateTime.now(),
+          lastLoginAt: DateTime.now(),
+          isAnonymous: true,
+        ));
+      }
     } catch (e) {
       setState(() {
         _errorMessage = "Guest sign-in failed. Please try email login.";
