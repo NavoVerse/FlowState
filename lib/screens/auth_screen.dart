@@ -262,8 +262,28 @@ class _AuthScreenState extends State<AuthScreen> {
                           ),
                         ),
                         validator: (val) {
-                          if (val == null || val.isEmpty || val.length < 6) {
+                          if (val == null || val.isEmpty) {
+                            return 'Please enter a password';
+                          }
+                          if (val.length < 6) {
                             return 'Password must be at least 6 characters';
+                          }
+                          if (_isSignUp) {
+                            if (val.length < 8) {
+                              return 'Password must be at least 8 characters';
+                            }
+                            if (!RegExp(r'[A-Z]').hasMatch(val)) {
+                              return 'Must contain at least one uppercase letter';
+                            }
+                            if (!RegExp(r'[a-z]').hasMatch(val)) {
+                              return 'Must contain at least one lowercase letter';
+                            }
+                            if (!RegExp(r'[0-9]').hasMatch(val)) {
+                              return 'Must contain at least one number';
+                            }
+                            if (!RegExp(r'[!@#\$&*~]').hasMatch(val)) {
+                              return 'Must contain at least one special character (!@#\$&*~)';
+                            }
                           }
                           return null;
                         },
