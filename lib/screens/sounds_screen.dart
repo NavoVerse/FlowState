@@ -201,7 +201,7 @@ class _SoundsScreenState extends State<SoundsScreen> {
                 child: Container(
                   padding: const EdgeInsets.all(20.0),
                   decoration: BoxDecoration(
-                    color: isDark ? const Color(0xFF334155).withOpacity(0.3) : Colors.white,
+                    color: isDark ? const Color(0xFF334155).withValues(alpha: 0.3) : Colors.white,
                     borderRadius: BorderRadius.circular(24),
                     border: Border.all(
                       color: isDark ? Colors.white10 : Colors.black12,
@@ -253,7 +253,7 @@ class _SoundsScreenState extends State<SoundsScreen> {
                       color: isDark ? const Color(0xFF1E293B) : Colors.white,
                       borderRadius: BorderRadius.circular(20),
                       border: Border.all(
-                        color: const Color(0xFF34D399).withOpacity(0.3),
+                        color: const Color(0xFF34D399).withValues(alpha: 0.3),
                         width: 1.5,
                       ),
                     ),
@@ -285,7 +285,7 @@ class _SoundsScreenState extends State<SoundsScreen> {
                                   activeTrackColor: const Color(0xFF34D399),
                                   inactiveTrackColor: isDark ? Colors.white10 : Colors.black12,
                                   thumbColor: const Color(0xFF34D399),
-                                  overlayColor: const Color(0xFF34D399).withOpacity(0.2),
+                                  overlayColor: const Color(0xFF34D399).withValues(alpha: 0.2),
                                   trackHeight: 4,
                                 ),
                                 child: Slider(
@@ -327,15 +327,15 @@ class _SoundsScreenState extends State<SoundsScreen> {
                         decoration: BoxDecoration(
                           color: isDark
                               ? (isCurrent
-                                  ? track.color.withOpacity(0.08)
-                                  : const Color(0xFF334155).withOpacity(0.25))
+                                  ? track.color.withValues(alpha: 0.08)
+                                  : const Color(0xFF334155).withValues(alpha: 0.25))
                               : (isCurrent
-                                  ? track.color.withOpacity(0.08)
+                                  ? track.color.withValues(alpha: 0.08)
                                   : Colors.white),
                           borderRadius: BorderRadius.circular(22),
                           border: Border.all(
                             color: isCurrent 
-                                ? track.color.withOpacity(0.6) 
+                                ? track.color.withValues(alpha: 0.6) 
                                 : (isDark ? Colors.white10 : Colors.black12),
                             width: isCurrent ? 2 : 1,
                           ),
@@ -349,7 +349,7 @@ class _SoundsScreenState extends State<SoundsScreen> {
                               decoration: BoxDecoration(
                                 shape: BoxShape.circle,
                                 color: isCurrent 
-                                    ? track.color.withOpacity(0.2) 
+                                    ? track.color.withValues(alpha: 0.2) 
                                     : (isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9)),
                               ),
                               child: Icon(

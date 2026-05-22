@@ -134,7 +134,7 @@ class _AuthScreenState extends State<AuthScreen> {
                               ),
                               boxShadow: [
                                 BoxShadow(
-                                  color: const Color(0xFF34D399).withOpacity(0.3),
+                                  color: const Color(0xFF34D399).withValues(alpha: 0.3),
                                   blurRadius: 20,
                                   offset: const Offset(0, 8),
                                 ),
@@ -181,7 +181,7 @@ class _AuthScreenState extends State<AuthScreen> {
                           hintText: 'Email address',
                           prefixIcon: const Icon(Icons.email_outlined),
                           filled: true,
-                          fillColor: isDark ? const Color(0xFF334155).withOpacity(0.5) : Colors.white,
+                          fillColor: isDark ? const Color(0xFF334155).withValues(alpha: 0.5) : Colors.white,
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(16.0),
                             borderSide: BorderSide.none,
@@ -214,7 +214,7 @@ class _AuthScreenState extends State<AuthScreen> {
                           hintText: 'Password',
                           prefixIcon: const Icon(Icons.lock_outlined),
                           filled: true,
-                          fillColor: isDark ? const Color(0xFF334155).withOpacity(0.5) : Colors.white,
+                          fillColor: isDark ? const Color(0xFF334155).withValues(alpha: 0.5) : Colors.white,
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(16.0),
                             borderSide: BorderSide.none,

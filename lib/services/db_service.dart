@@ -59,6 +59,12 @@ class DatabaseService extends ChangeNotifier {
 
   bool get isFirebaseAvailable => _isFirebaseAvailable;
 
+  @override
+  void dispose() {
+    _localLogsController.close();
+    super.dispose();
+  }
+
   // Stream of Mood Logs for a specific user
   Stream<List<MoodLog>> getMoodLogs(String userId) {
     if (_isFirebaseAvailable) {
@@ -73,9 +79,15 @@ class DatabaseService extends ChangeNotifier {
         }).toList();
       });
     } else {
-      // Return local stream
-      // We push current items immediately
-      Timer.run(() => _localLogsController.add(List.from(_mockMoodLogs)));
+      // Return local stream — initial data is already pushed in constructor
+      // Only push again if the stream might have been missed (e.g. new listener)
+      if (!_localLogsController.isClosed) {
+        Future.microtask(() {
+          if (!_localLogsController.isClosed) {
+            _localLogsController.add(List.from(_mockMoodLogs));
+          }
+        });
+      }
       return _localLogsController.stream;
     }
   }

@@ -121,7 +121,9 @@ class _BreathScreenState extends State<BreathScreen> with SingleTickerProviderSt
         break;
       case BreathPhase.holdIn:
         duration = _selectedTechnique.holdInSeconds;
-        _animController.duration = Duration(seconds: duration);
+        if (duration > 0) {
+          _animController.duration = Duration(seconds: duration);
+        }
         // Remains expanded
         break;
       case BreathPhase.exhale:
@@ -131,9 +133,17 @@ class _BreathScreenState extends State<BreathScreen> with SingleTickerProviderSt
         break;
       case BreathPhase.holdOut:
         duration = _selectedTechnique.holdOutSeconds;
-        _animController.duration = Duration(seconds: duration);
+        if (duration > 0) {
+          _animController.duration = Duration(seconds: duration);
+        }
         // Remains contracted
         break;
+    }
+
+    // Skip zero-duration phases immediately
+    if (duration <= 0) {
+      _transitionToNextPhase();
+      return;
     }
 
     setState(() {
@@ -141,6 +151,10 @@ class _BreathScreenState extends State<BreathScreen> with SingleTickerProviderSt
     });
 
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!mounted || !_isPlaying) {
+        timer.cancel();
+        return;
+      }
       if (_secondsRemaining > 1) {
         setState(() {
           _secondsRemaining--;
@@ -256,7 +270,7 @@ class _BreathScreenState extends State<BreathScreen> with SingleTickerProviderSt
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 16.0),
                     decoration: BoxDecoration(
-                      color: isDark ? const Color(0xFF334155).withOpacity(0.5) : Colors.white,
+                      color: isDark ? const Color(0xFF334155).withValues(alpha: 0.5) : Colors.white,
                       borderRadius: BorderRadius.circular(16),
                       border: Border.all(
                         color: isDark ? Colors.white10 : Colors.black12,
@@ -350,7 +364,7 @@ class _BreathScreenState extends State<BreathScreen> with SingleTickerProviderSt
                             color: Colors.transparent,
                             boxShadow: [
                               BoxShadow(
-                                color: _getPhaseColor().withOpacity(0.3),
+                                color: _getPhaseColor().withValues(alpha: 0.3),
                                 blurRadius: 40,
                                 spreadRadius: 10 * scale,
                               ),
@@ -365,8 +379,8 @@ class _BreathScreenState extends State<BreathScreen> with SingleTickerProviderSt
                             shape: BoxShape.circle,
                             gradient: RadialGradient(
                               colors: [
-                                _getPhaseColor().withOpacity(0.85),
-                                _getPhaseColor().withOpacity(0.45),
+                                _getPhaseColor().withValues(alpha: 0.85),
+                                _getPhaseColor().withValues(alpha: 0.45),
                               ],
                             ),
                           ),
@@ -420,7 +434,7 @@ class _BreathScreenState extends State<BreathScreen> with SingleTickerProviderSt
                   child: ElevatedButton(
                     onPressed: _isPlaying ? _stopBreathing : _startBreathing,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: _isPlaying ? Colors.redAccent.withOpacity(0.8) : const Color(0xFF34D399),
+                      backgroundColor: _isPlaying ? Colors.redAccent.withValues(alpha: 0.8) : const Color(0xFF34D399),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(30),
                       ),

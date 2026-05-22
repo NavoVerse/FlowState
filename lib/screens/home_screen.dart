@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../services/auth_service.dart';
-import '../services/db_service.dart';
 import 'breath_screen.dart';
 import 'mood_screen.dart';
 import 'sounds_screen.dart';
@@ -19,13 +18,22 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   late String _dailyQuote;
 
+  static const List<String> _affirmations = [
+    "Breathing in, I calm my body. Breathing out, I smile.",
+    "You do not have to control your thoughts. You just have to stop letting them control you.",
+    "This stress is only temporary. I am capable, strong, and centered.",
+    "With every breath, I release anxiety and invite peace into my heart.",
+    "Slow down. You are doing just fine. Trust the journey.",
+    "I am grounded, safe, and supported in this present moment.",
+    "Peace begins with a single conscious breath.",
+    "I am allowed to rest, recharge, and take care of my well-being.",
+    "My mind is clear, my heart is calm, and my soul is at peace."
+  ];
+
   @override
   void initState() {
     super.initState();
-    // Select a random quote for this session
-    final db = DatabaseService();
-    final quotes = db.getAffirmations();
-    _dailyQuote = quotes[Random().nextInt(quotes.length)];
+    _dailyQuote = _affirmations[Random().nextInt(_affirmations.length)];
   }
 
   String _getGreeting() {
@@ -126,7 +134,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     borderRadius: BorderRadius.circular(28),
                     boxShadow: [
                       BoxShadow(
-                        color: const Color(0xFF34D399).withOpacity(0.2),
+                        color: const Color(0xFF34D399).withValues(alpha: 0.2),
                         blurRadius: 20,
                         offset: const Offset(0, 8),
                       ),
@@ -144,7 +152,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               fontSize: 11,
                               fontWeight: FontWeight.bold,
                               letterSpacing: 1.5,
-                              color: Colors.white.withOpacity(0.8),
+                              color: Colors.white.withValues(alpha: 0.8),
                             ),
                           ),
                           const Icon(Icons.spa_outlined, color: Colors.white, size: 20),
@@ -219,7 +227,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 Container(
                   padding: const EdgeInsets.all(18.0),
                   decoration: BoxDecoration(
-                    color: isDark ? const Color(0xFF334155).withOpacity(0.3) : Colors.white,
+                    color: isDark ? const Color(0xFF334155).withValues(alpha: 0.3) : Colors.white,
                     borderRadius: BorderRadius.circular(22),
                     border: Border.all(
                       color: isDark ? Colors.white10 : Colors.black12,
@@ -284,14 +292,14 @@ class _HomeScreenState extends State<HomeScreen> {
       child: Container(
         padding: const EdgeInsets.all(20.0),
         decoration: BoxDecoration(
-          color: isDark ? const Color(0xFF334155).withOpacity(0.25) : Colors.white,
+          color: isDark ? const Color(0xFF334155).withValues(alpha: 0.25) : Colors.white,
           borderRadius: BorderRadius.circular(24),
           border: Border.all(
             color: isDark ? Colors.white10 : Colors.black12,
           ),
           boxShadow: [
             BoxShadow(
-              color: color.withOpacity(0.04),
+              color: color.withValues(alpha: 0.04),
               blurRadius: 15,
               offset: const Offset(0, 4),
             ),
@@ -304,7 +312,7 @@ class _HomeScreenState extends State<HomeScreen> {
               width: 54,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: color.withOpacity(0.12),
+                color: color.withValues(alpha: 0.12),
               ),
               alignment: Alignment.center,
               child: Text(

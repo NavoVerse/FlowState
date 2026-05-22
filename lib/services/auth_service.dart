@@ -56,6 +56,12 @@ class AuthService extends ChangeNotifier {
   bool get isFirebaseAvailable => _isFirebaseAvailable;
   Stream<FlowUser?> get userStream => _userStreamController.stream;
 
+  @override
+  void dispose() {
+    _userStreamController.close();
+    super.dispose();
+  }
+
   // Sign In Anonymously (Guest Mode)
   Future<FlowUser?> signInAnonymously() async {
     try {

@@ -121,14 +121,14 @@ class _MoodScreenState extends State<MoodScreen> {
                 child: Container(
                   padding: const EdgeInsets.all(20.0),
                   decoration: BoxDecoration(
-                    color: isDark ? const Color(0xFF334155).withOpacity(0.35) : Colors.white,
+                    color: isDark ? const Color(0xFF334155).withValues(alpha: 0.35) : Colors.white,
                     borderRadius: BorderRadius.circular(24),
                     border: Border.all(
                       color: isDark ? Colors.white10 : Colors.black12,
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: _getCurrentColor().withOpacity(0.08),
+                        color: _getCurrentColor().withValues(alpha: 0.08),
                         blurRadius: 20,
                         spreadRadius: 2,
                       ),
@@ -174,7 +174,7 @@ class _MoodScreenState extends State<MoodScreen> {
                               decoration: BoxDecoration(
                                 shape: BoxShape.circle,
                                 color: isSelected
-                                    ? m['color'].withOpacity(0.2)
+                                    ? m['color'].withValues(alpha: 0.2)
                                     : Colors.transparent,
                                 border: Border.all(
                                   color: isSelected ? m['color'] : Colors.transparent,
@@ -217,7 +217,7 @@ class _MoodScreenState extends State<MoodScreen> {
                           hintText: "Add a brief calming thought or note...",
                           hintStyle: TextStyle(color: isDark ? Colors.white38 : Colors.black38),
                           filled: true,
-                          fillColor: isDark ? const Color(0xFF1E293B).withOpacity(0.5) : const Color(0xFFF1F5F9),
+                          fillColor: isDark ? const Color(0xFF1E293B).withValues(alpha: 0.5) : const Color(0xFFF1F5F9),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(16.0),
                             borderSide: BorderSide.none,
@@ -337,7 +337,7 @@ class _MoodScreenState extends State<MoodScreen> {
                             padding: const EdgeInsets.only(right: 20.0),
                             margin: const EdgeInsets.symmetric(vertical: 6.0),
                             decoration: BoxDecoration(
-                              color: Colors.redAccent.withOpacity(0.8),
+                              color: Colors.redAccent.withValues(alpha: 0.8),
                               borderRadius: BorderRadius.circular(20),
                             ),
                             child: const Icon(Icons.delete_outline, color: Colors.white),
@@ -346,7 +346,7 @@ class _MoodScreenState extends State<MoodScreen> {
                             margin: const EdgeInsets.symmetric(vertical: 6.0),
                             padding: const EdgeInsets.all(16.0),
                             decoration: BoxDecoration(
-                              color: isDark ? const Color(0xFF334155).withOpacity(0.3) : Colors.white,
+                              color: isDark ? const Color(0xFF334155).withValues(alpha: 0.3) : Colors.white,
                               borderRadius: BorderRadius.circular(20),
                               border: Border.all(
                                 color: isDark ? Colors.white10 : Colors.black12,
@@ -361,8 +361,8 @@ class _MoodScreenState extends State<MoodScreen> {
                                   width: 48,
                                   decoration: BoxDecoration(
                                     shape: BoxShape.circle,
-                                    color: cardColor.withOpacity(0.15),
-                                    border: Border.all(color: cardColor.withOpacity(0.3), width: 1),
+                                    color: cardColor.withValues(alpha: 0.15),
+                                    border: Border.all(color: cardColor.withValues(alpha: 0.3), width: 1),
                                   ),
                                   alignment: Alignment.center,
                                   child: Text(
