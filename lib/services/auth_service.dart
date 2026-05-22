@@ -19,6 +19,11 @@ class AuthService extends ChangeNotifier {
   FlowUser? _currentUser;
   bool _isFirebaseAvailable = false;
 
+  // Local mock credentials store for offline/mock database testing
+  final Map<String, String> _mockCredentials = {
+    'test@flowstate.com': 'Password123!',
+  };
+
   final StreamController<FlowUser?> _userStreamController = StreamController<FlowUser?>.broadcast();
 
   AuthService() : _auth = _initFirebaseAuth() {
@@ -117,10 +122,16 @@ class AuthService extends ChangeNotifier {
           return _currentUser;
         }
       } else {
-        // Mock
+        // Mock registration persistence
         await Future.delayed(const Duration(milliseconds: 800));
+        final trimmedEmail = email.trim().toLowerCase();
+        if (_mockCredentials.containsKey(trimmedEmail)) {
+          throw Exception("An account already exists with this email address.");
+        }
+        _mockCredentials[trimmedEmail] = password;
+        
         _currentUser = FlowUser(
-          uid: 'mock_user_${email.hashCode}',
+          uid: 'mock_user_${trimmedEmail.hashCode}',
           email: email.trim(),
           isAnonymous: false,
         );
@@ -155,13 +166,18 @@ class AuthService extends ChangeNotifier {
           return _currentUser;
         }
       } else {
-        // Mock validation
+        // Mock login credentials validation
         await Future.delayed(const Duration(milliseconds: 800));
-        if (password.length < 6) {
-          throw Exception("Password must be at least 6 characters.");
+        final trimmedEmail = email.trim().toLowerCase();
+        if (!_mockCredentials.containsKey(trimmedEmail)) {
+          throw Exception("No account found with this email. Please sign up first.");
         }
+        if (_mockCredentials[trimmedEmail] != password) {
+          throw Exception("Incorrect password. Please try again.");
+        }
+        
         _currentUser = FlowUser(
-          uid: 'mock_user_${email.hashCode}',
+          uid: 'mock_user_${trimmedEmail.hashCode}',
           email: email.trim(),
           isAnonymous: false,
         );
