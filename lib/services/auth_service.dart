@@ -1,6 +1,8 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class FlowUser {
   final String uid;
@@ -45,6 +47,84 @@ class AuthService extends ChangeNotifier {
     } else {
       // Setup default mock guest user for immediate offline testing
       debugPrint("Firebase Auth not initialized, using local mock auth");
+      _initMockAuth();
+    }
+  }
+
+  Future<void> _initMockAuth() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      
+      // Load mock credentials from secure JSON serialization
+      final savedCredsJson = prefs.getString('mock_credentials_json');
+      if (savedCredsJson != null) {
+        final Map<String, dynamic> map = jsonDecode(savedCredsJson);
+        map.forEach((key, value) {
+          _mockCredentials[key] = value.toString();
+        });
+      } else {
+        // Fallback for older format if it exists
+        final savedCreds = prefs.getStringList('mock_credentials');
+        if (savedCreds != null) {
+          for (final entry in savedCreds) {
+            final parts = entry.split(':');
+            if (parts.length == 2) {
+              _mockCredentials[parts[0]] = parts[1];
+            }
+          }
+        }
+      }
+
+      // Load active user session
+      final savedUid = prefs.getString('mock_session_uid');
+      final savedEmail = prefs.getString('mock_session_email');
+      final savedIsAnon = prefs.getBool('mock_session_is_anon');
+
+      if (savedUid != null && savedEmail != null && savedIsAnon != null) {
+        _currentUser = FlowUser(
+          uid: savedUid,
+          email: savedEmail,
+          isAnonymous: savedIsAnon,
+        );
+        _userStreamController.add(_currentUser);
+        notifyListeners();
+        debugPrint("Restored persistent mock user session: $savedEmail");
+      }
+    } catch (e) {
+      debugPrint("Error initializing persistent mock auth: $e");
+    }
+  }
+
+  Future<void> _saveCredentialsToPrefs() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final jsonStr = jsonEncode(_mockCredentials);
+      await prefs.setString('mock_credentials_json', jsonStr);
+    } catch (e) {
+      debugPrint("Error saving credentials to prefs: $e");
+    }
+  }
+
+  Future<void> _saveSessionToPrefs() async {
+    if (_currentUser == null) return;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('mock_session_uid', _currentUser!.uid);
+      await prefs.setString('mock_session_email', _currentUser!.email);
+      await prefs.setBool('mock_session_is_anon', _currentUser!.isAnonymous);
+    } catch (e) {
+      debugPrint("Error saving session to prefs: $e");
+    }
+  }
+
+  Future<void> _clearSessionFromPrefs() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove('mock_session_uid');
+      await prefs.remove('mock_session_email');
+      await prefs.remove('mock_session_is_anon');
+    } catch (e) {
+      debugPrint("Error clearing session from prefs: $e");
     }
   }
 
@@ -91,6 +171,7 @@ class AuthService extends ChangeNotifier {
           email: 'Guest User',
           isAnonymous: true,
         );
+        await _saveSessionToPrefs();
         _userStreamController.add(_currentUser);
         notifyListeners();
         return _currentUser;
@@ -129,12 +210,14 @@ class AuthService extends ChangeNotifier {
           throw Exception("An account already exists with this email address.");
         }
         _mockCredentials[trimmedEmail] = password;
+        await _saveCredentialsToPrefs();
         
         _currentUser = FlowUser(
           uid: 'mock_user_${trimmedEmail.hashCode}',
           email: email.trim(),
           isAnonymous: false,
         );
+        await _saveSessionToPrefs();
         _userStreamController.add(_currentUser);
         notifyListeners();
         return _currentUser;
@@ -181,6 +264,7 @@ class AuthService extends ChangeNotifier {
           email: email.trim(),
           isAnonymous: false,
         );
+        await _saveSessionToPrefs();
         _userStreamController.add(_currentUser);
         notifyListeners();
         return _currentUser;
@@ -197,6 +281,8 @@ class AuthService extends ChangeNotifier {
     try {
       if (_isFirebaseAvailable) {
         await _auth!.signOut();
+      } else {
+        await _clearSessionFromPrefs();
       }
       _currentUser = null;
       _userStreamController.add(null);

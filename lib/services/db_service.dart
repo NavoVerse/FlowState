@@ -1,6 +1,8 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../models/mood_log.dart';
 import '../models/user_profile.dart';
 
@@ -19,34 +21,133 @@ class DatabaseService extends ChangeNotifier {
     _isFirebaseAvailable = _db != null;
     if (!_isFirebaseAvailable) {
       debugPrint("Firebase Firestore not initialized, using local mock store");
-      // Add a couple of initial mock logs to demonstrate the history chart/list beautifully!
-      _mockMoodLogs.addAll([
-        MoodLog(
-          id: 'mock_1',
-          userId: 'guest',
-          score: 4.0,
-          note: 'Felt very calm after doing the breathing exercises today.',
-          timestamp: DateTime.now().subtract(const Duration(days: 2)),
-          moodType: 'Calm',
-        ),
-        MoodLog(
-          id: 'mock_2',
-          userId: 'guest',
-          score: 2.0,
-          note: 'A bit stressed with work deadlines. Guided audio helped.',
-          timestamp: DateTime.now().subtract(const Duration(days: 1)),
-          moodType: 'Anxious',
-        ),
-        MoodLog(
-          id: 'mock_3',
-          userId: 'guest',
-          score: 5.0,
-          note: 'Splendid morning! Filled with affirmations.',
-          timestamp: DateTime.now().subtract(const Duration(hours: 4)),
-          moodType: 'Happy',
-        ),
-      ]);
+      _initMockDatabase();
+    }
+  }
+
+  Future<void> _initMockDatabase() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      
+      // Load user profiles first
+      final savedProfiles = prefs.getStringList('mock_user_profiles');
+      if (savedProfiles != null) {
+        _mockUserProfiles.clear();
+        for (final jsonStr in savedProfiles) {
+          final Map<String, dynamic> map = jsonDecode(jsonStr);
+          final tsStr = map['createdAt'] as String;
+          final loginStr = map['lastLoginAt'] as String;
+          final profile = UserProfile(
+            uid: map['uid'] ?? '',
+            email: map['email'] ?? '',
+            displayName: map['displayName'] ?? '',
+            createdAt: DateTime.parse(tsStr),
+            lastLoginAt: DateTime.parse(loginStr),
+            isAnonymous: map['isAnonymous'] ?? false,
+          );
+          _mockUserProfiles[profile.uid] = profile;
+        }
+      }
+
+      // Load mood logs
+      final savedLogs = prefs.getStringList('mock_mood_logs');
+      if (savedLogs != null) {
+        _mockMoodLogs.clear();
+        for (final jsonStr in savedLogs) {
+          final Map<String, dynamic> map = jsonDecode(jsonStr);
+          final tsStr = map['timestamp'] as String;
+          final log = MoodLog(
+            id: map['id'] ?? '',
+            userId: map['userId'] ?? '',
+            score: (map['score'] as num?)?.toDouble() ?? 3.0,
+            note: map['note'] ?? '',
+            timestamp: DateTime.parse(tsStr),
+            moodType: map['moodType'] ?? 'Calm',
+          );
+          _mockMoodLogs.add(log);
+        }
+      } else {
+        // First run fallback: Add default mock logs
+        _mockMoodLogs.addAll([
+          MoodLog(
+            id: 'mock_1',
+            userId: 'mock_guest_uid',
+            score: 4.0,
+            note: 'Felt very calm after doing the breathing exercises today.',
+            timestamp: DateTime.now().subtract(const Duration(days: 2)),
+            moodType: 'Calm',
+          ),
+          MoodLog(
+            id: 'mock_2',
+            userId: 'mock_guest_uid',
+            score: 2.0,
+            note: 'A bit stressed with work deadlines. Guided audio helped.',
+            timestamp: DateTime.now().subtract(const Duration(days: 1)),
+            moodType: 'Anxious',
+          ),
+          MoodLog(
+            id: 'mock_3',
+            userId: 'mock_guest_uid',
+            score: 5.0,
+            note: 'Splendid morning! Filled with affirmations.',
+            timestamp: DateTime.now().subtract(const Duration(hours: 4)),
+            moodType: 'Happy',
+          ),
+          MoodLog(
+            id: 'mock_test_1',
+            userId: 'mock_user_${'test@flowstate.com'.hashCode}',
+            score: 5.0,
+            note: 'Welcome to your private FlowState space! Your data is completely secured.',
+            timestamp: DateTime.now().subtract(const Duration(hours: 2)),
+            moodType: 'Calm',
+          ),
+        ]);
+        await _saveMoodLogsToPrefs();
+      }
+
       _localLogsController.add(List.from(_mockMoodLogs));
+      notifyListeners();
+      debugPrint("Restored persistent mock database contents.");
+    } catch (e) {
+      debugPrint("Error initializing persistent mock database: $e");
+    }
+  }
+
+  Future<void> _saveMoodLogsToPrefs() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final list = _mockMoodLogs.map((log) {
+        return jsonEncode({
+          'id': log.id,
+          'userId': log.userId,
+          'score': log.score,
+          'note': log.note,
+          'timestamp': log.timestamp.toIso8601String(),
+          'moodType': log.moodType,
+        });
+      }).toList();
+      await prefs.setStringList('mock_mood_logs', list);
+    } catch (e) {
+      debugPrint("Error saving mood logs to prefs: $e");
+    }
+  }
+
+  Future<void> _saveUserProfilesToPrefs() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final list = _mockUserProfiles.values.map((profile) {
+        return jsonEncode({
+          'uid': profile.uid,
+          'email': profile.email,
+          'displayName': profile.displayName,
+          'createdAt': profile.createdAt.toIso8601String(),
+          'lastLoginAt': profile.lastLoginAt.toIso8601String(),
+          'isAnonymous': profile.isAnonymous,
+        });
+      }).toList();
+      await prefs.setStringList('mock_user_profiles', list);
+    } catch (e) {
+      debugPrint("Error saving user profiles to prefs: $e");
     }
   }
 
@@ -81,16 +182,35 @@ class DatabaseService extends ChangeNotifier {
         }).toList();
       });
     } else {
-      // Return local stream — initial data is already pushed in constructor
-      // Only push again if the stream might have been missed (e.g. new listener)
-      if (!_localLogsController.isClosed) {
-        Future.microtask(() {
-          if (!_localLogsController.isClosed) {
-            _localLogsController.add(List.from(_mockMoodLogs));
-          }
-        });
-      }
-      return _localLogsController.stream;
+      // Create a dedicated single-subscription controller for this user.
+      // It yields the current logs synchronously upon listening, then forwards
+      // filtered updates from the main broadcast stream.
+      late StreamController<List<MoodLog>> controller;
+      StreamSubscription<List<MoodLog>>? subscription;
+
+      controller = StreamController<List<MoodLog>>(
+        onListen: () {
+          // Emit the current list of logs for this user immediately
+          controller.add(_mockMoodLogs.where((log) => log.userId == userId).toList());
+          
+          // Listen for future additions/deletions and filter them
+          subscription = _localLogsController.stream.listen(
+            (logs) {
+              if (!controller.isClosed) {
+                controller.add(logs.where((log) => log.userId == userId).toList());
+              }
+            },
+            onError: controller.addError,
+            onDone: controller.close,
+          );
+        },
+        onCancel: () {
+          subscription?.cancel();
+          controller.close();
+        },
+      );
+
+      return controller.stream;
     }
   }
 
@@ -113,6 +233,7 @@ class DatabaseService extends ChangeNotifier {
         await Future.delayed(const Duration(milliseconds: 300));
         _mockMoodLogs.insert(0, newLog);
         _localLogsController.add(List.from(_mockMoodLogs));
+        await _saveMoodLogsToPrefs();
         notifyListeners();
       }
     } catch (e) {
@@ -130,6 +251,7 @@ class DatabaseService extends ChangeNotifier {
         await Future.delayed(const Duration(milliseconds: 200));
         _mockMoodLogs.removeWhere((log) => log.id == logId);
         _localLogsController.add(List.from(_mockMoodLogs));
+        await _saveMoodLogsToPrefs();
         notifyListeners();
       }
     } catch (e) {
@@ -147,6 +269,7 @@ class DatabaseService extends ChangeNotifier {
         // Mock save
         await Future.delayed(const Duration(milliseconds: 200));
         _mockUserProfiles[profile.uid] = profile;
+        await _saveUserProfilesToPrefs();
         debugPrint("Successfully saved mock user profile for: ${profile.email}");
       }
     } catch (e) {

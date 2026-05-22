@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flow_state/services/auth_service.dart';
 
 void main() {
@@ -6,6 +7,8 @@ void main() {
     late AuthService authService;
 
     setUp(() {
+      TestWidgetsFlutterBinding.ensureInitialized();
+      SharedPreferences.setMockInitialValues({});
       // Initialize a clean AuthService instance
       authService = AuthService();
     });
