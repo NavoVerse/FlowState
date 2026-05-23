@@ -1,4 +1,5 @@
 import 'dart:math';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -48,6 +49,24 @@ class _HomeScreenState extends State<HomeScreen> {
     final authService = Provider.of<AuthService>(context);
     final user = authService.currentUser;
     final email = user?.email ?? 'Friend';
+
+    // Safely derive display name from email (defensive: handles missing '@' or empty strings)
+    String displayName;
+    try {
+      if (email.isEmpty) {
+        displayName = 'Friend';
+      } else if (email.contains('@')) {
+        final parts = email.split('@');
+        displayName = (parts.isNotEmpty && parts[0].isNotEmpty) ? parts[0] : email;
+      } else {
+        displayName = email;
+      }
+    } catch (e) {
+      // Fallback in the unlikely event of an error
+      debugPrint('Error parsing display name from email: $e');
+      displayName = 'Friend';
+    }
+
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
@@ -90,7 +109,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                         ),
                         Text(
-                          email.split('@')[0],
+                          displayName,
                           style: GoogleFonts.outfit(
                             fontSize: 28,
                             fontWeight: FontWeight.bold,
@@ -134,7 +153,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     borderRadius: BorderRadius.circular(28),
                     boxShadow: [
                       BoxShadow(
-                        color: const Color(0xFF34D399).withValues(alpha: 0.2),
+                        color: const Color(0xFF34D399).withOpacity(0.2),
                         blurRadius: 20,
                         offset: const Offset(0, 8),
                       ),
@@ -152,7 +171,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               fontSize: 11,
                               fontWeight: FontWeight.bold,
                               letterSpacing: 1.5,
-                              color: Colors.white.withValues(alpha: 0.8),
+                              color: Colors.white.withOpacity(0.8),
                             ),
                           ),
                           const Icon(Icons.spa_outlined, color: Colors.white, size: 20),
@@ -227,7 +246,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 Container(
                   padding: const EdgeInsets.all(18.0),
                   decoration: BoxDecoration(
-                    color: isDark ? const Color(0xFF334155).withValues(alpha: 0.3) : Colors.white,
+                    color: isDark ? const Color(0xFF334155).withOpacity(0.3) : Colors.white,
                     borderRadius: BorderRadius.circular(22),
                     border: Border.all(
                       color: isDark ? Colors.white10 : Colors.black12,
@@ -292,14 +311,14 @@ class _HomeScreenState extends State<HomeScreen> {
       child: Container(
         padding: const EdgeInsets.all(20.0),
         decoration: BoxDecoration(
-          color: isDark ? const Color(0xFF334155).withValues(alpha: 0.25) : Colors.white,
+          color: isDark ? const Color(0xFF334155).withOpacity(0.25) : Colors.white,
           borderRadius: BorderRadius.circular(24),
           border: Border.all(
             color: isDark ? Colors.white10 : Colors.black12,
           ),
           boxShadow: [
             BoxShadow(
-              color: color.withValues(alpha: 0.04),
+              color: color.withOpacity(0.04),
               blurRadius: 15,
               offset: const Offset(0, 4),
             ),
@@ -312,7 +331,7 @@ class _HomeScreenState extends State<HomeScreen> {
               width: 54,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: color.withValues(alpha: 0.12),
+                color: color.withOpacity(0.12),
               ),
               alignment: Alignment.center,
               child: Text(
