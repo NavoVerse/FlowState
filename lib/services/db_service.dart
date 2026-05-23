@@ -20,7 +20,7 @@ class DatabaseService extends ChangeNotifier {
   DatabaseService() : _db = _initFirestore() {
     _isFirebaseAvailable = _db != null;
     if (!_isFirebaseAvailable) {
-      debugPrint("Firebase Firestore not initialized, using local mock store");
+      debugPrint("🔁 Firebase Firestore not initialized, using local mock store");
       _initMockDatabase();
     }
   }
@@ -28,7 +28,7 @@ class DatabaseService extends ChangeNotifier {
   Future<void> _initMockDatabase() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      
+
       // Load user profiles first
       final savedProfiles = prefs.getStringList('mock_user_profiles');
       if (savedProfiles != null) {
@@ -95,7 +95,7 @@ class DatabaseService extends ChangeNotifier {
           ),
           MoodLog(
             id: 'mock_test_1',
-            userId: 'mock_user_${'test@flowstate.com'.hashCode}',
+            userId: 'mock_user_${'test@flowstate.com'.hashCode}',
             score: 5.0,
             note: 'Welcome to your private FlowState space! Your data is completely secured.',
             timestamp: DateTime.now().subtract(const Duration(hours: 2)),
@@ -107,9 +107,9 @@ class DatabaseService extends ChangeNotifier {
 
       _localLogsController.add(List.from(_mockMoodLogs));
       notifyListeners();
-      debugPrint("Restored persistent mock database contents.");
+      debugPrint("✅ Restored persistent mock database contents.");
     } catch (e) {
-      debugPrint("Error initializing persistent mock database: $e");
+      debugPrint("❌ Error initializing persistent mock database: $e");
     }
   }
 
@@ -128,7 +128,7 @@ class DatabaseService extends ChangeNotifier {
       }).toList();
       await prefs.setStringList('mock_mood_logs', list);
     } catch (e) {
-      debugPrint("Error saving mood logs to prefs: $e");
+      debugPrint("❌ Error saving mood logs to prefs: $e");
     }
   }
 
@@ -147,7 +147,7 @@ class DatabaseService extends ChangeNotifier {
       }).toList();
       await prefs.setStringList('mock_user_profiles', list);
     } catch (e) {
-      debugPrint("Error saving user profiles to prefs: $e");
+      debugPrint("❌ Error saving user profiles to prefs: $e");
     }
   }
 
@@ -155,7 +155,7 @@ class DatabaseService extends ChangeNotifier {
     try {
       return FirebaseFirestore.instance;
     } catch (e) {
-      debugPrint("Firebase Firestore is not configured/available. Local fallback enabled. Error: $e");
+      debugPrint("⚠️ Firebase Firestore is not configured/available. Local fallback enabled. Error: $e");
       return null;
     }
   }
@@ -182,40 +182,27 @@ class DatabaseService extends ChangeNotifier {
         }).toList();
       });
     } else {
-      // Create a dedicated single-subscription controller for this user.
-      // It yields the current logs synchronously upon listening, then forwards
-      // filtered updates from the main broadcast stream.
-      late StreamController<List<MoodLog>> controller;
-      StreamSubscription<List<MoodLog>>? subscription;
-
-      controller = StreamController<List<MoodLog>>(
-        onListen: () {
-          // Emit the current list of logs for this user immediately
-          controller.add(_mockMoodLogs.where((log) => log.userId == userId).toList());
-          
-          // Listen for future additions/deletions and filter them
-          subscription = _localLogsController.stream.listen(
-            (logs) {
-              if (!controller.isClosed) {
-                controller.add(logs.where((log) => log.userId == userId).toList());
-              }
-            },
-            onError: controller.addError,
-            onDone: controller.close,
-          );
-        },
-        onCancel: () {
-          subscription?.cancel();
-          controller.close();
-        },
-      );
-
-      return controller.stream;
+      // Return a filtered view of the broadcast stream to avoid per-listener controllers
+      // This prevents memory leaks and centralizes subscription management.
+      return _localLogsController.stream
+          .map((logs) => logs.where((log) => log.userId == userId).toList())
+          .distinct((prev, next) {
+        if (prev.length != next.length) return false;
+        for (var i = 0; i < prev.length; i++) {
+          if (prev[i].id != next[i].id) return false;
+        }
+        return true;
+      });
     }
   }
 
   // Add Mood Log
   Future<void> addMoodLog(String userId, double score, String note, String moodType) async {
+    // Validation
+    if (userId.isEmpty) throw ArgumentError('userId cannot be empty');
+    if (score.isNaN) throw ArgumentError('score must be a number');
+    if (score < 0.0 || score > 5.0) throw ArgumentError('score must be between 0 and 5');
+
     final newLog = MoodLog(
       id: _isFirebaseAvailable ? '' : 'mock_${DateTime.now().millisecondsSinceEpoch}',
       userId: userId,
@@ -235,27 +222,36 @@ class DatabaseService extends ChangeNotifier {
         _localLogsController.add(List.from(_mockMoodLogs));
         await _saveMoodLogsToPrefs();
         notifyListeners();
+        debugPrint('✅ Added mock mood log for user $userId (score: $score)');
       }
     } catch (e) {
-      debugPrint("Error adding mood log: $e");
+      debugPrint("❌ Error adding mood log: $e");
       rethrow;
     }
   }
 
   // Delete Mood Log
   Future<void> deleteMoodLog(String logId) async {
+    if (logId.isEmpty) throw ArgumentError('logId cannot be empty');
+
     try {
       if (_isFirebaseAvailable) {
         await _db!.collection('mood_logs').doc(logId).delete();
       } else {
         await Future.delayed(const Duration(milliseconds: 200));
+        final initialLength = _mockMoodLogs.length;
         _mockMoodLogs.removeWhere((log) => log.id == logId);
-        _localLogsController.add(List.from(_mockMoodLogs));
-        await _saveMoodLogsToPrefs();
-        notifyListeners();
+        if (_mockMoodLogs.length == initialLength) {
+          debugPrint('⚠️ Warning: Mock mood log with id $logId not found');
+        } else {
+          _localLogsController.add(List.from(_mockMoodLogs));
+          await _saveMoodLogsToPrefs();
+          notifyListeners();
+          debugPrint('✅ Removed mock mood log $logId');
+        }
       }
     } catch (e) {
-      debugPrint("Error deleting mood log: $e");
+      debugPrint("❌ Error deleting mood log: $e");
       rethrow;
     }
   }
@@ -270,10 +266,10 @@ class DatabaseService extends ChangeNotifier {
         await Future.delayed(const Duration(milliseconds: 200));
         _mockUserProfiles[profile.uid] = profile;
         await _saveUserProfilesToPrefs();
-        debugPrint("Successfully saved mock user profile for: ${profile.email}");
+        debugPrint("✅ Successfully saved mock user profile for: ${profile.email}");
       }
     } catch (e) {
-      debugPrint("Error saving user profile: $e");
+      debugPrint("❌ Error saving user profile: $e");
       rethrow;
     }
   }
@@ -292,7 +288,7 @@ class DatabaseService extends ChangeNotifier {
         return _mockUserProfiles[uid];
       }
     } catch (e) {
-      debugPrint("Error getting user profile: $e");
+      debugPrint("❌ Error getting user profile: $e");
       rethrow;
     }
     return null;
